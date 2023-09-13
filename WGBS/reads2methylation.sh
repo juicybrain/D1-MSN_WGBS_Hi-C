@@ -1,9 +1,13 @@
-### This file lists the key parameters used in the WGBS alignment and methylation call workflow
+### This file lists the parameters used in the WGBS alignment and methylation call workflow#
+#
+#      Author      Yuxiang Li (mathewlyx@gmail.com)
+#
+
 ### trimming
-trimgalore --paired  --clip_r1 10 --three_prime_clip_r1 15  $sample\_R1.fq.gz --clip_r2 15 --three_prime_clip_r2 3 $sample\_R2.fq.gz
+trimgalore --paired  --clip_r1 3 --three_prime_clip_r1 15  $sample\_R1.fq.gz --clip_r2 15 --three_prime_clip_r2 3 $sample\_R2.fq.gz
 
 ### alignment to lambda DNA and conversion rate calculation
-bismark   --bowtie2 --gzip --parallel 8  --bam  /home/yli/ref/genome/lambdaDNA -1 $wd/$sample\_R1_val_1.fq.gz -2 $wd/$sample\_R2_val_2.fq.gz -o ./${sample}_bismark_bowtie_lambda
+bismark   --bowtie2 --gzip --parallel 8  --bam  /home/XXX/genome/lambdaDNA -1 $wd/$sample\_R1_val_1.fq.gz -2 $wd/$sample\_R2_val_2.fq.gz -o ./${sample}_bismark_bowtie_lambda
 # deduplication
 deduplicate_bismark --bam ${sample}*.bam
 #filter non-conversion reads
@@ -23,7 +27,7 @@ bismark_methylation_extractor -p --bedGraph --gzip --CX --ignore_3prime 3 --igno
       cat CG.lambda.cov  |awk 'BEGIN{me=0;unme=0;OFS="\t"}{me=me+$4;unme=unme+$5}END{print "CG", me, unme,1-me/(me+unme)}' >> coversion_rate.CX.txt
 
 ### alignment to mm10 reference genome
-bismark --bowtie2 --gzip -X 1000  --parallel 4 --bam  /home/yli/ref/genome/male.mm10  -1  $sample\_merge.R1.fq.gz  -2 $spl\_merge.R2.fq.gz  -o ${spl}\_bismark_bowtie_mm10
+bismark --bowtie2 --gzip -X 1000  --parallel 4 --bam  /home/XXX/genome/male.mm10  -1  $sample\_merge.R1.fq.gz  -2 $spl\_merge.R2.fq.gz  -o ${spl}\_bismark_bowtie_mm10
 #deduplicaiton and filtering non-conversion reads
 deduplicate_bismark --bam ${spl}*pe.bam
 samtools view ./${spl}\.R1_bismark_bt2_pe.deduplicated.bam | awk 'BEGIN{OFS="\t"}{split($14,a,":")}{if(a[3] ~ /[a-z]/); else if(gsub(/[XH]/, "", a[3])>2)print $0}' | cut -f 1 | sort | uniq -c |awk '$1==2' |cut -f 2  > ${spl}\.list
