@@ -1,13 +1,13 @@
-###  identify broad regions enriched with DMLs
+###  Identify broad regions enriched with DMLs
 #
 #  Author  Yuxiang Li
 #
 
-### count DML numbers in each 10k-window bins of all genomic regions covered by WGBS (we excluded regions with less than 20% of average CG coverage) 
-for spl in `ls *bed`; do   bedtools map -a <(sort -k1,1 -k2,2n  /home/yli/ref/bed/windows/D1_WGBS_covered_region.10kW5kS.auto.bed) -b <(sort -k1,1 -k2,2n ${spl}) -c 4 -o sum | awk -v OFS="\t" '{if($4>0)print $0; else print $1,$2,$3,0}' > ${spl%".bed"*}\.dml.counts; done
+### Count DML numbers in each 10k-window bin of all genomic regions covered by WGBS (we excluded regions with less than 20% of average CG coverage) 
+for spl in `ls dml*bed`; do   bedtools map -a <(sort -k1,1 -k2,2n  /home/yli/ref/bed/windows/D1_WGBS_covered_region.10kW5kS.auto.bed) -b <(sort -k1,1 -k2,2n ${spl}) -c 4 -o sum | awk -v OFS="\t" '{if($4>0)print $0; else print $1,$2,$3,0}' > ${spl%".bed"*}\.dml.counts; done
 wait
 
-### calculate p-value of each bins 
+### Calculate the p-value of each bin 
 for spl in `ls *counts`; do  Rscript poisson.r ${spl}; done
 
 wait
