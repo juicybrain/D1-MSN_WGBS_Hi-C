@@ -20,11 +20,11 @@ func1(){
     python ~/git/combined-pvalues/cpv/peaks.py --seed ${2} --dist 200000  ${1}\.comb-p > ${1}\.res
 }
 
-for spl in `ls *txt`; do cat ${spl} | awk   '$4==0' | head -n 1 | awk -v name=${spl} '{printf name"\t"$6"\n"}' >> seed.txt; done
+for spl in `ls *txt`; do cat ${spl} | awk   '$4==1' | head -n 1 | awk -v name=${spl} '{printf name"\t"0.999*$6"\n"}' >> seed; done
 
-cat seed.txt | while read line; do func1 $line; done
+cat seed | while read line; do func1 $line; done
 
 for spl in `ls *txt`; do cat ${spl}|awk -v FS=" " -v OFS="\t" '{print $1,$2,$3,$6}' > ${spl}\.comb-p;  python ~/git/combined-pvalues/cpv/peaks.py --seed 0.01 --dist 100000  ${spl}\.comb-p > ${spl}\.res; done
 
 wait
-for spl in `ls *res`; do cat $spl | awk '$4<1e-10' > ${spl}\.1e-10.bed; done
+for spl in `ls *res`; do cat $spl | awk '$4<1e-10'|awk '$5>2' > ${spl}\.1e-10.bed; done
