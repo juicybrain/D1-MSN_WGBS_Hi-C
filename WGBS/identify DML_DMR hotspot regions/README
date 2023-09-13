@@ -1,1 +1,3 @@
-identify DML/DMR hotspot regions
+Identify DML/DMR hotspot regions
+First step:  identify DMLs (CpG sites with coverage >=10 in at least 3 replicates) using DSS without smoothing, delta beta value >0.05, p-value <0.01
+Second step: identify hotspot regions using 
