@@ -94,7 +94,7 @@ p_tf.2 = p_tf2 + theme_bw(base_size = 5)+ theme(plot.margin = unit(c(0,0,0,0), "
 ggsave("CG.TF.svg",plot=p_tf.2, device="svg",width=8, height=4.5,unit="cm") 
 rm(list=ls())
 
-###  plot genome-wide DML distribution
+###  Plot genome-wide DML distribution
 
 
 library("tidyverse")
@@ -167,9 +167,293 @@ ggsave("figre1.test29.svg",plot=p, device=svg,width=30, height=9,units="cm")
 ggsave("figre1.test30.svg",plot=p, device=svg,width=30, height=10,units="cm") 
 
 
+###  Plot mCG in the hotspot on chr8  
 
 
+############################ chr8 ###############################################
+dat = read.table("promoter/chr8.cDMR_promoter_1.bedgraph", header=F)
+dat$V5 = 1
+for (i in 2:10){
+  dat_tmp = read.table(paste0("promoter/chr8.cDMR_promoter_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i
+  dat=rbind(dat,dat_tmp)
+}
 
+for (i in 1:50){
+  dat_tmp = read.table(paste0("gene_body/chr8.cDMR_gene_body_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i+10
+  dat=rbind(dat,dat_tmp)
+}
+
+for (i in 1:10){
+  dat_tmp = read.table(paste0("downstream/chr8.cDMR_downstream_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i+60
+  dat=rbind(dat,dat_tmp)
+}
+
+dat_s = dat[order(dat$V4, dat$V5),]
+
+write.table(dat_s, "chr8.cDMR.scaled.txt", quote=F, row.names = F, sep="\t")
+
+#library(reshape)
+#dat_test = head(dat_s)
+
+#dat_test = dat_test[,-c(1,2,3,6)]
+#colnames(dat_test) = c("gene","region",rep("MN",6), rep("MP",5), rep("FN", 5), rep("FP",6))
+
+dat_MN = dat_s[, 7:12]
+dat_MP = dat_s[, 13:17]
+dat_FN = dat_s[, 18:22]
+dat_FP = dat_s[, 23:28]
+
+
+for (spl in list("dat_MN", "dat_MP", "dat_FN", "dat_FP")){
+      
+      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
+      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )
+  }
+
+ dat_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MN_mean"= dat_MN_mean, "MN_sd" = dat_MN_sd, "MP_mean" = dat_MP_mean, "MP_sd"= dat_MP_sd)
+ dat_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "FN_mean"= dat_FN_mean, "FN_sd" = dat_FN_sd, "FP_mean" = dat_FP_mean, "FP_sd"= dat_FP_sd)
+ 
+ 
+ dat_MN_mean_plot = dat_M_mean_sd[,1:4]
+ colnames(dat_MN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_MN_mean_plot$group = "MN"
+ 
+ dat_MP_mean_plot = dat_M_mean_sd[,c(1,2,5,6)]
+ colnames(dat_MP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_MP_mean_plot$group = "MP"
+
+ dat_FN_mean_plot = dat_F_mean_sd[,1:4]
+ colnames(dat_FN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_FN_mean_plot$group = "FN"
+ 
+ dat_FP_mean_plot = dat_F_mean_sd[,c(1,2,5,6)]
+ colnames(dat_FP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_FP_mean_plot$group = "FP"
+ 
+ 
+ dat_plot_M = rbind(dat_MN_mean_plot, dat_MP_mean_plot)
+ 
+ dat_plot_M_s = dat_plot_M[order(dat_plot_M$gene, dat_plot_M$region ),]
+ 
+ dat_plot_M_1 = dat_plot_M_s[1:140, ]
+ 
+ 
+ g1 = ggplot(dat_plot_M_1, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
+ # geom_point(size=0.1) +
+ # theme_minimal() +
+  labs(x = "", y = "", title = "") +
+  scale_color_manual(values = c("MN" = "blue", "MP" = "red")) +
+  scale_fill_manual(values = c("MN" = "blue", "MP" = "red"))+
+  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.5, 1)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
+  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
+ 
+ g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
+ 
+ ggsave( "chr.male.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
+ 
+ ################### female ##################
+ 
+ dat_plot_F = rbind(dat_FN_mean_plot, dat_FP_mean_plot)
+ 
+ dat_plot_F_s = dat_plot_F[order(dat_plot_F$gene, dat_plot_F$region ),]
+ 
+ dat_plot_F_1 = dat_plot_F_s[1:140, ]
+ 
+ 
+ g1 = ggplot(dat_plot_F_1, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
+ # geom_point(size=0.1) +
+ # theme_minimal() +
+  labs(x = "", y = "", title = "") +
+  scale_color_manual(values = c("FN" = "blue", "FP" = "red")) +
+  scale_fill_manual(values = c("FN" = "blue", "FP" = "red"))+
+  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.5, 1)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
+  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
+ 
+ g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
+ 
+ ggsave( "chr.female.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
+ 
+ 
+##################### beta regression ############################
+ 
+
+dat_test = data.frame(MN_mean=dat_MN_mean_plot$mean[11:60], MP_mean=dat_MP_mean_plot$mean[11:60], pos=1:50)
+library(betareg)
+library(reshape)
+df = melt(dat_test, id="pos")
+colnames(df) = c("pos", "group", "mC")
+epsilon <- 0.0001
+df$mC <- ifelse(df$mC == 0, df$mC + epsilon, df$mC)
+df$mC <- ifelse(df$mC == 1, df$mC - epsilon, df$mC)
+
+# Fit the model
+model_M <- betareg(mC ~ group + pos, data = df)
+
+# Print the summary of the model
+summary(model_M)
+
+
+dat_test = data.frame(FN_mean=dat_FN_mean_plot$mean[11:60], FP_mean=dat_FP_mean_plot$mean[11:60], pos=1:50)
+library(betareg)
+library(reshape)
+df = melt(dat_test, id="pos")
+colnames(df) = c("pos", "group", "mC")
+epsilon <- 0.0001
+df$mC <- ifelse(df$mC == 0, df$mC + epsilon, df$mC)
+df$mC <- ifelse(df$mC == 1, df$mC - epsilon, df$mC)
+
+# Fit the model
+model_F <- betareg(mC ~ group + pos, data = df)
+
+# Print the summary of the model
+summary(model_F)
+
+
+###  Plot conversion-rate corrected mCH in the hotspot on chr8 
+
+
+############################ chr8 ###############################################
+
+library("tidyverse")
+dat_CA = read.table("mCA.corrected.txt", header=T)
+dat_CT = read.table("mCT.corrected.txt", header=T)
+dat_CC = read.table("mCC.corrected.txt", header=T)
+
+
+dat_c = dat_CA[, 51:94] + dat_CT[, 51:94] + dat_CC[,-1]
+
+dat_s = dat_c[,c(T,F)] / dat_c[,c(F,T)]
+
+dat_s = cbind(dat_CA[, 1:6], dat_s)
+
+#library(reshape)
+#dat_test = head(dat_s)
+
+#dat_test = dat_test[,-c(1,2,3,6)]
+#colnames(dat_test) = c("gene","region",rep("MN",6), rep("MP",5), rep("FN", 5), rep("FP",6))
+
+dat_MN = dat_s[, 7:12]
+dat_MP = dat_s[, 13:17]
+dat_FN = dat_s[, 18:22]
+dat_FP = dat_s[, 23:28]
+
+
+for (spl in list("dat_MN", "dat_MP", "dat_FN", "dat_FP")){
+      
+      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
+      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )  
+      
+  }
+
+ dat_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MN_mean"= dat_MN_mean, "MN_sd" = dat_MN_sd, "MP_mean" = dat_MP_mean, "MP_sd"= dat_MP_sd)
+ dat_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "FN_mean"= dat_FN_mean, "FN_sd" = dat_FN_sd, "FP_mean" = dat_FP_mean, "FP_sd"= dat_FP_sd)
+ 
+ 
+ dat_MN_mean_plot = dat_M_mean_sd[,1:4]
+ colnames(dat_MN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_MN_mean_plot$group = "MN"
+ 
+ dat_MP_mean_plot = dat_M_mean_sd[,c(1,2,5,6)]
+ colnames(dat_MP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_MP_mean_plot$group = "MP"
+
+ dat_FN_mean_plot = dat_F_mean_sd[,1:4]
+ colnames(dat_FN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_FN_mean_plot$group = "FN"
+ 
+ dat_FP_mean_plot = dat_F_mean_sd[,c(1,2,5,6)]
+ colnames(dat_FP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_FP_mean_plot$group = "FP"
+ 
+ 
+ dat_plot_M = rbind(dat_MN_mean_plot, dat_MP_mean_plot)
+ 
+ dat_plot_M_s = dat_plot_M[order(dat_plot_M$gene, dat_plot_M$region ),]
+ 
+ dat_plot_M_1 = dat_plot_M_s[141:280, ]
+ 
+ 
+ g1 = ggplot(dat_plot_M_1, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
+ # geom_point(size=0.1) +
+ # theme_minimal() +
+  labs(x = "", y = "", title = "") +
+  scale_color_manual(values = c("MN" = "blue", "MP" = "red")) +
+  scale_fill_manual(values = c("MN" = "blue", "MP" = "red"))+
+  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.005, 0.03)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
+  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
+ 
+ g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
+ 
+ ggsave( "chr.male.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
+ 
+ ################### female ##################
+ 
+ dat_plot_F = rbind(dat_FN_mean_plot, dat_FP_mean_plot)
+ 
+ dat_plot_F_s = dat_plot_F[order(dat_plot_F$gene, dat_plot_F$region ),]
+ 
+ dat_plot_F_1 = dat_plot_F_s[141:280, ]
+ 
+ 
+ g1 = ggplot(dat_plot_F_1, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
+ # geom_point(size=0.1) +
+ # theme_minimal() +
+  labs(x = "", y = "", title = "") +
+  scale_color_manual(values = c("FN" = "blue", "FP" = "red")) +
+  scale_fill_manual(values = c("FN" = "blue", "FP" = "red"))+
+  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.005, 0.03)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
+  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
+ 
+ g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
+ 
+ ggsave( "chr.female.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
+ 
+ 
+ 
+ 
+
+#chr8
+  dat_test = data.frame(MP_mean=dat_MP_mean_plot$mean[81:130], MN_mean=dat_MN_mean_plot$mean[81:130], pos=1:50)
+library(betareg)
+library(reshape)
+df = melt(dat_test, id="pos")
+colnames(df) = c("pos", "group", "mCH")
+epsilon <- 0.0001
+df$mCH <- ifelse(df$mCH == 0, df$mCH + epsilon, df$mCH)
+df$mCH <- ifelse(df$mCH == 1, df$mCH - epsilon, df$mCH)
+
+# Fit the model
+model_M <- betareg(mCH ~ group +pos, data = df)
+
+# Print the summary of the model
+summary(model_M)
+
+#chr8
+dat_test = data.frame(FP_mean=dat_FP_mean_plot$mean[81:130], FN_mean=dat_FN_mean_plot$mean[81:130], pos=1:50)
+library(betareg)
+library(reshape)
+df = melt(dat_test, id="pos")
+colnames(df) = c("pos", "group", "mCH")
+epsilon <- 0.0001
+df$mCH <- ifelse(df$mCH == 0, df$mCH + epsilon, df$mCH)
+df$mCH <- ifelse(df$mCH == 1, df$mCH - epsilon, df$mCH)
+
+# Fit the model
+model_F <- betareg(mCH ~ group + pos, data = df)
+
+# Print the summary of the model
+summary(model_F)
 
 
 
