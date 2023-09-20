@@ -47,7 +47,7 @@ h1 <- Heatmap(dat3,name="normalized MeCG",
  #           na_col = "black",
             row_km_repeats = 10,
             top_annotation = ha,
-            col=colorRamp2(c(-0.5,0,0.5), c("blue", "white", "red")),
+            col=colorRamp2(c(-0.5,-0.25,0, 0.25,0.5), c("darkblue", "blue", "white", "red", "darkred")),
  #           right_annotation = ha2,
 #            rowAnnotation(foo = anno_histogram(m)),
  #           clustering_distance_columns = "euclidean",
@@ -66,9 +66,9 @@ h1 <- Heatmap(dat3,name="normalized MeCG",
             cluster_column_slices = FALSE,
 #            show_column_names = T,
               ## order follows pretested K-means cluster results (n=2)
-       row_order = c("chr11_57176086_57176100", "chr2_174300445_174300496", "chr2_174300692_174300800", "chr6_119007467_119007573", "chr6_119013481_119013528", "chr3_136565031_136565049", "chr3_136835425_136835483", "chr14_70273363_70274681","chr12_100303350_100303476", "chr17_87448937_87448998", "chr2_92027799_92027966", "chr6_136053082_136053179", "chr6_136055946_136056048", "chr6_136119790_136120045", "chr6_136158990_136159043", "chr6_136205579_136205766", "chr6_136212625_136212970", "chr6_136227720_136227763", "chr13_53800455_53800506","chr3_126610345_126610404","chr11_6006301_6006543"),
-            column_order=c("Male_WT_Rep6","Male_WT_Rep2","Male_WT_Rep3","Male_WT_Rep4","Male_WT_Rep1","Male_WT_Rep5","Female_WT_Rep1","Female_WT_Rep4","Female_WT_Rep5","Female_WT_Rep3","Female_WT_Rep2", "Male_KO_Rep5","Male_KO_Rep4","Male_KO_Rep3","Male_KO_Rep1","Male_KO_Rep2", "Female_KO_Rep1","Female_KO_Rep2","Female_KO_Rep4","Female_KO_Rep6","Female_KO_Rep5","Female_KO_Rep3")      
-)
+            row_order = c("chr11_57176086_57176100", "chr2_174300445_174300496", "chr2_174300692_174300800", "chr6_119007467_119007573", "chr6_119013481_119013528", "chr3_136565031_136565049", "chr3_136835425_136835483", "chr14_70273363_70274681","chr12_100303350_100303476", "chr17_87448937_87448998", "chr2_92027799_92027966", "chr6_136053082_136053179", "chr6_136055946_136056048", "chr6_136119790_136120045", "chr6_136158990_136159043", "chr6_136205579_136205766", "chr6_136212625_136212970", "chr6_136227720_136227763", "chr13_53800455_53800506","chr3_126610345_126610404","chr11_6006301_6006543"),
+             
+             )
 
 h1
 dev.off()
@@ -224,3 +224,135 @@ draw(ha_genes+h1+g1+ha4)
 dev.off()
 
 write.table(anov_res,"DHR_genes.anova_res.txt",quote=F,sep="\t")
+
+rm(list=ls())
+### Plot the mCG level around the whole gene loci of DHR representative genes: Hcn1, Zdhhc2, and Grin2b (scale according to the gene length to 10bins upstream TSS, 50 bins for gene body, and 10 bins downstream of TTS)
+
+library("tidyverse")
+
+############################ male hypo ###############################################
+dat = read.table("promoter/D1_M_WTvsCre.hypo.target.gene.f_promoter_1.bedgraph", header=F)
+dat$V5 = 1
+for (i in 2:10){
+  dat_tmp = read.table(paste0("promoter/D1_M_WTvsCre.hypo.target.gene.f_promoter_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i
+  dat=rbind(dat,dat_tmp)            }
+
+for (i in 1:50){
+  dat_tmp = read.table(paste0("gene_body/D1_M_WTvsCre.hypo.target.gene.f_gene_body_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i+10
+  dat=rbind(dat,dat_tmp)            }
+
+for (i in 1:10){
+  dat_tmp = read.table(paste0("downstream/D1_M_WTvsCre.hypo.target.gene.f_downstream_",i,".bedgraph"),header =F)
+  dat_tmp$V5 = i+60
+  dat=rbind(dat,dat_tmp)            }
+
+dat_s = dat[order(dat$V4, dat$V5),]
+write.table(dat_s, "cDMR.male.hypo.gene.scaled.txt", quote=F, row.names = F, sep="\t")
+
+dat_MN = dat_s[, 7:12]
+dat_MP = dat_s[, 13:17]
+dat_FN = dat_s[, 18:22]
+dat_FP = dat_s[, 23:28]
+
+for (spl in list("dat_MN", "dat_MP", "dat_FN", "dat_FP")){     
+      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
+      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )             }
+
+ dat_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MN_mean"= dat_MN_mean, "MN_sd" = dat_MN_sd/sqrt(6), "MP_mean" = dat_MP_mean, "MP_sd"= dat_MP_sd/sqrt(5))
+ dat_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "FN_mean"= dat_FN_mean, "FN_sd" = dat_FN_sd/sqrt(5), "FP_mean" = dat_FP_mean, "FP_sd"= dat_FP_sd/sqrt(6))
+
+ dat_MN_mean_plot = dat_M_mean_sd[,1:4]
+ colnames(dat_MN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_MN_mean_plot$group = "MN"
+ 
+ dat_MP_mean_plot = dat_M_mean_sd[,c(1,2,5,6)]
+ colnames(dat_MP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_MP_mean_plot$group = "MP"
+ 
+ dat_FN_mean_plot = dat_F_mean_sd[,1:4]
+ colnames(dat_FN_mean_plot) = c("gene", "region", "mean", "sd") 
+ dat_FN_mean_plot$group = "FN"
+ 
+ dat_FP_mean_plot = dat_F_mean_sd[,c(1,2,5,6)]
+ colnames(dat_FP_mean_plot) = c("gene", "region", "mean", "sd")
+ dat_FP_mean_plot$group = "FP"
+ 
+# plot all genes 
+  # Create a plot for the current category
+    dat_KOvsCtl_M = dat_MP - dat_MN_mean
+    dat_KOvsCtl_F = dat_FP - dat_FN_mean
+
+  for (spl in list("dat_KOvsCtl_M", "dat_KOvsCtl_F")){
+      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
+      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) ) }
+
+  dat_KOvsCtl_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MvsF_Ctl_mean"= dat_KOvsCtl_M_mean, "MvsN_Ctl_sd" = dat_KOvsCtl_M_sd/sqrt(5))
+  dat_KOvsCtl_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MvsF_Ctl_mean"= dat_KOvsCtl_F_mean, "MvsN_Ctl_sd" = dat_KOvsCtl_F_sd/sqrt(6)) 
+   
+  colnames(dat_KOvsCtl_M_mean_sd) = c("gene", "region", "mean", "sd") 
+  dat_KOvsCtl_M_mean_sd$group = "KOvsCtl_M"
+  colnames(dat_KOvsCtl_F_mean_sd) = c("gene", "region", "mean", "sd") 
+  dat_KOvsCtl_F_mean_sd$group = "KOvsCtl_F"
+  dat_plot_Ctl_Ko = rbind(dat_KOvsCtl_M_mean_sd, dat_KOvsCtl_F_mean_sd )
+  dat_plot_Ctl_Ko = dat_plot_Ctl_Ko[order(dat_plot_Ctl_Ko$gene, dat_plot_Ctl_Ko$region ),]
+  df=dat_plot_Ctl_Ko
+  write.table(df, "KOvsCon.MF.cDMRgene.txt", quote=F,sep="\t", row.names = F)
+
+ uniq_genes <- unique(dat_plot_M_s$gene)
+ for (gene in uniq_genes) {
+  # Subset the data frame for the current category
+  subset_df <- df[df$gene == gene, ]
+  # Create a plot for the current category
+  p <- ggplot(subset_df, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group), alpha = 0.3, size=0) +
+  labs(x = "X-axis label", y = "Y-axis label", title = paste0(gene," Line Plot with Standard Error Shadows")) +
+  scale_color_manual(values = c("KOvsCtl_M" = "orange", "KOvsCtl_F" = "purple")) +
+  scale_fill_manual(values = c("KOvsCtl_M" = "orange", "KOvsCtl_F" = "purple"))+
+  scale_x_continuous(breaks = c(0,10, 60,70), labels = c("-10", "TSS", "TES", "10")) + theme_classic(base_size=5, base_line_size =0.2)  
+  ggsave( paste0(gene,".meCG.gene.in.KOvsCon.MF.svg"),plot=p, width = 2,height = 1)
+  } 
+
+
+### plot M-F
+    dat_MvsF_Ctl = dat_s[, 7:12] - dat_FN_mean
+    dat_MvsF_Ko =  dat_s[, 13:17] - dat_FP_mean
+  for (spl in list("dat_MvsF_Ctl", "dat_MvsF_Ko")){
+      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
+      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )
+  }
+
+   dat_MvsF_ctl_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MvsF_Ctl_mean"= dat_MvsF_Ctl_mean, "MvsN_Ctl_sd" = dat_MvsF_Ctl_sd/sqrt(6))
+   dat_MvsF_Ko_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MvsF_Ko_mean"= dat_MvsF_Ko_mean, "MvsN_Ko_sd" = dat_MvsF_Ko_sd/sqrt(5))   
+ colnames(dat_MvsF_ctl_mean_sd) = c("gene", "region", "mean", "sd") 
+ dat_MvsF_ctl_mean_sd$group = "MvsF_Ctl"
+ 
+ colnames(dat_MvsF_Ko_mean_sd) = c("gene", "region", "mean", "sd") 
+ dat_MvsF_Ko_mean_sd$group = "MvsF_Ko"
+ dat_plot_Ctl_Ko = rbind(dat_MvsF_ctl_mean_sd, dat_MvsF_Ko_mean_sd )
+ dat_plot_Ctl_Ko = dat_plot_Ctl_Ko[order(dat_plot_Ctl_Ko$gene, dat_plot_Ctl_Ko$region ),]
+ df=dat_plot_Ctl_Ko
+ write.table(df, "MvsF.cDMRgene.txt", quote=F,sep="\t", row.names = F)
+
+ uniq_genes <- unique(dat_plot_M_s$gene)
+ for (gene in uniq_genes) {
+  # Subset the data frame for the current category
+  subset_df <- df[df$gene == gene, ]  
+  # Create a plot for the current category
+  p <- ggplot(subset_df, aes(x = region, y = mean, color = group, group = group)) +
+  geom_line(size=0.25) +
+  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group), alpha = 0.3, size=0) +
+  labs(x = "X-axis label", y = "Y-axis label", title = paste0(gene," Line Plot with Standard Error Shadows")) +
+  scale_color_manual(values = c("MvsF_Ctl" = "blue", "MvsF_Ko" = "red")) +
+  scale_fill_manual(values = c("MvsF_Ctl" = "blue", "MvsF_Ko" = "red"))+
+  scale_x_continuous(breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) + theme_classic(base_size=5, base_line_size =0.2)
+  ggsave( paste0(gene,".meCG.gene.in.MvsF.Ctl.svg"),plot=p, width = 2,height = 1)
+ }
+ 
+ 
+
+
+
+
