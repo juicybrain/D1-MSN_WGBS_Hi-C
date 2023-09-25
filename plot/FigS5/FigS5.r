@@ -127,7 +127,207 @@ p1.1=p1 + theme_classic(base_size = 5)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0
 
 ggsave("global_meCG.all.svg",plot=p1.1,width=4, height=4,unit="cm")
 
+### plot the PCA of genome-wide mCG and mCH level
+
+## autosome mCG
+
+set.seed(123)
+library("tidyverse")
+wd="D:/D1_WGBS/final version/fig1_version_4/PCA/CG_100k/"
+dat_100k = read.table(paste0(wd, "D1F_WGBS_10.txt"), header=F)
+colnames(dat_100k)=c( "chr", "start", "end", unlist(strsplit("D1F_WGBS_10.txt",split=".txt"))[1]
+
+for (spl in c("D1F_WGBS_11","D1F_WGBS_12","D1F_WGBS_1","D1F_WGBS_2","D1F_WGBS_3","D1F_WGBS_4","D1F_WGBS_5","D1F_WGBS_6","D1F_WGBS_7","D1F_WGBS_8","D1M_WGBS_10","D1M_WGBS_11","D1M_WGBS_12","D1M_WGBS_1","D1M_WGBS_2","D1M_WGBS_3","D1M_WGBS_4","D1M_WGBS_5","D1M_WGBS_7","D1M_WGBS_8","D1M_WGBS_9")) {
+
+  dat_tmp= read.table(paste0(wd,spl,".txt"),  header=F)
+  colnames(dat_tmp) = c("chr", "start", "end", spl)
+  dat_100k = merge(dat_100k, dat_tmp, by=c("chr", "start", "end" ),all=F)  
+}
+
+colnames(dat_100k) = c("chr", "start", "end" ,"Female_KO_Rep1","Female_KO_Rep2","Female_WT_Rep1", "Female_WT_Rep2", "Female_WT_Rep3", "Female_KO_Rep3", "Female_WT_Rep4", "Female_KO_Rep4", "Female_KO_Rep5", "Female_KO_Rep6", "Female_WT_Rep5","Male_KO_Rep1","Male_WT_Rep1","Male_KO_Rep2", "Male_WT_Rep2", "Male_WT_Rep3", "Male_WT_Rep4", "Male_WT_Rep5", "Male_WT_Rep6", "Male_KO_Rep3", "Male_KO_Rep4", "Male_KO_Rep5")
+
+rownames(dat_100k) = paste0( dat_100k$chr, dat_100k$start, dat_100k$end)
 
 
+# all auto
+
+inputMatrix = dat_100k%>%filter(chr!="chrX")%>% dplyr::select(-c(1,2,3))
+probesetvar = apply(inputMatrix,1,var)
+ord = order(probesetvar,decreasing=TRUE)[1:12000]
+pca = prcomp(t(inputMatrix[ord,]),scale=T)
+ss1 = summary(pca)
+pca_dat <- pca$x[,c(1,2,3,4)]
+pca_dat <- as.data.frame(pca_dat)
+pca_dat$name =row.names(pca_dat)
+  pca_dat$rep = sapply(strsplit(pca_dat$name,split="_"),"[[",3)
+
+pca_dat$group <- sapply(strsplit(pca_dat$name,split="_Rep"),"[[",1)
+pca_dat$TET1 <- sapply(strsplit(pca_dat$name,split="_"),"[[",2)
+
+g1 <- ggplot(pca_dat,aes(x=pca_dat$PC1,y=pca_dat$PC2,label=pca_dat$rep)) + geom_point(aes(color=group,shape=TET1)) + geom_text(aes(label=""),hjust=1,vjust=-1,size=1)+
+  #coord_cartesian(xlim=c(-20,20),ylim = c(-20, 20),expand=F) + 
+  scale_color_manual(values = c("Male_KO"="orange","Male_WT"="orange","Female_WT"="purple","Female_KO"="purple")) +
+  scale_shape_manual(values=c("KO"=13,"WT"=1))+xlab("PC1 ( 16.6% )")+ylab("PC2 ( 9.1% )")
 
 
+g1.1 = g1 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),
+                                                 axis.text.x=element_blank(),
+                                                 axis.text.y=element_blank(),
+                                                # axis.text.x =element_text(size = 8,angle = 0,vjust=0.5),
+                           legend.position ="right",legend.title=element_text(face='italic',size=5),
+                           panel.grid.major=element_line(colour=NA),
+                   #        legend.title = element_text(size=6),
+                           legend.text = element_text(size=5),
+                           legend.key.size = unit(0, 'cm'),
+                           legend.key.height = unit(0.2, 'cm'),
+                           legend.key.width = unit(0, 'cm'),
+                                                 panel.background = element_rect(fill = NA,size=1,colour = "black"),
+                                                 plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                 #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 panel.grid.minor = element_blank())
+ggsave(paste0(wd, "D1_FM_100kPCA_mCG.svg"),plot=g1.1,width = 6,height = 4,unit="cm")
+
+# all chrX
+
+inputMatrix = dat_100k%>%filter(chr=="chrX")%>% select(-c(1,2,3))
+probesetvar = apply(inputMatrix,1,var)
+ord = order(probesetvar,decreasing=TRUE)[1:1000]
+pca = prcomp(t(inputMatrix[ord,]),scale=F)
+ss6 = summary(pca)
+pca_dat <- pca$x[,c(1,2,3,4)]
+
+pca_dat <- as.data.frame(pca_dat)
+pca_dat$name =row.names(pca_dat)
+pca_dat$rep = sapply(strsplit(pca_dat$name,split="_"),"[[",3)
+pca_dat$group <- sapply(strsplit(pca_dat$name,split="_Rep"),"[[",1)
+pca_dat$TET1 <- sapply(strsplit(pca_dat$name,split="_"),"[[",2)
+
+g1 <-  ggplot(pca_dat,aes(x=pca_dat$PC1,y=pca_dat$PC2,label=pca_dat$rep)) + geom_point(aes(color=group,shape=TET1)) + geom_text(aes(label=""),hjust=1,vjust=-1,size=1)+
+  #coord_cartesian(xlim=c(-20,20),ylim = c(-20, 20),expand=F) + 
+  scale_color_manual(values = c("Male_KO"="orange","Male_WT"="orange","Female_WT"="purple","Female_KO"="purple")) +
+  scale_shape_manual(values=c("KO"=13,"WT"=1))+xlab("PC1 ( 95% )")+ylab("PC2 ( 0.7% )")
+
+g1.1 = g1 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),
+                                                 axis.text.x=element_blank(),
+                                                 axis.text.y=element_blank(),
+                                                # axis.text.x =element_text(size = 8,angle = 0,vjust=0.5),
+                           legend.position ="right",legend.title=element_text(face='italic',size=5),
+                           panel.grid.major=element_line(colour=NA),
+                   #        legend.title = element_text(size=6),
+                           legend.text = element_text(size=5),
+                           legend.key.size = unit(0, 'cm'),
+                           legend.key.height = unit(0.2, 'cm'),
+                           legend.key.width = unit(0, 'cm'),
+                                                 panel.background = element_rect(fill = NA,size=1,colour = "black"),
+                                                 plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                 #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 panel.grid.minor = element_blank())
+ggsave(paste0(wd, "D1_FM_100kPCA_mCG.chrX.svg"),plot=g1.1,width = 6,height = 4,unit="cm")
+
+## mCA
+
+
+set.seed(123)
+library("tidyverse")
+#wd="D:/D1_WGBS/final version/fig1_version_4/figS1_version_4/PCA/non-CG_100k/"
+dat = read.table(paste0( "all_WGBS.raw.f.txt"), header=T)
+colnames(dat)=c( unlist(strsplit(colnames(dat),split=".txt")))
+
+### correct with methylation rate
+dat_con = read.table("mCA.conversion_rate.txt",header=F)
+
+dat_m = dat[,-c(1:3)]
+dat_res = data.frame(matrix( nrow = nrow(dat_m)))
+
+for (i in 1:22) {
+      Con_R = dat_con$V1[i]
+        dat_res[[paste0("Res_", 2*i-1)]] = dat_m[, 2*i-1] - (dat_m[, 2*i]- dat_m[, 2*i-1])*(1-Con_R)/Con_R
+        dat_res[[paste0("Res_", 2*i)]] = dat_m[, 2*i]
+        }
+
+dat_s = cbind(dat[,1:3], dat_res[,-1])
+write.table(dat_s, "mCA.corrected.txt", quote=F, sep="\t", row.names=F)
+
+
+dat_100k = cbind(dat[,1:3], dat_s[,-c(1:3)][,c(T,F)]/dat_s[,-c(1:3)][,c(F,T)])
+
+
+colnames(dat_100k) = c("chr", "start", "end" , paste0("Male_WT_Rep", 1:6) ,  paste0("Male_KO_Rep", 1:5), paste0("Female_WT_Rep", 1:5), paste0("Female_KO_Rep", 1:6))
+
+rownames(dat_100k) = paste0( dat_100k$chr, dat_100k$start, dat_100k$end)
+
+
+# all auto
+
+inputMatrix = dat_100k%>%filter(chr!="chrX")%>% select(-c(1,2,3))
+probesetvar = apply(inputMatrix,1,var)
+ord = order(probesetvar,decreasing=TRUE)[1:12000]
+pca = prcomp(t(inputMatrix[ord,]),scale=T)
+ss1 = summary(pca)
+pca_dat <- pca$x[,c(1,2,3,4)]
+pca_dat <- as.data.frame(pca_dat)
+pca_dat$name =row.names(pca_dat)
+pca_dat$rep = sapply(strsplit(pca_dat$name,split="_"),"[[",3)
+pca_dat$group <- sapply(strsplit(pca_dat$name,split="_Rep"),"[[",1)
+pca_dat$TET1 <- sapply(strsplit(pca_dat$name,split="_"),"[[",2)
+
+g1 <- ggplot(pca_dat,aes(x=pca_dat$PC1,y=pca_dat$PC2,label=pca_dat$rep)) + geom_point(aes(color=group,shape=TET1)) + geom_text(aes(label=""),hjust=1,vjust=-1,size=1)+
+  #coord_cartesian(xlim=c(-20,20),ylim = c(-20, 20),expand=F) + 
+  scale_color_manual(values = c("Male_KO"="orange","Male_WT"="orange","Female_WT"="purple","Female_KO"="purple")) +
+  scale_shape_manual(values=c("KO"=13,"WT"=1))+xlab("PC1 ( 52.6% )")+ylab("PC2 ( 13% )")
+
+g1.1 = g1 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),
+                                                 axis.text.x=element_blank(),
+                                                 axis.text.y=element_blank(),
+                                                # axis.text.x =element_text(size = 8,angle = 0,vjust=0.5),
+                           legend.position ="right",legend.title=element_text(face='italic',size=5),
+                           panel.grid.major=element_line(colour=NA),
+                   #        legend.title = element_text(size=6),
+                           legend.text = element_text(size=5),
+                           legend.key.size = unit(0, 'cm'),
+                           legend.key.height = unit(0.2, 'cm'),
+                           legend.key.width = unit(0, 'cm'),
+                                                 panel.background = element_rect(fill = NA,size=1,colour = "black"),
+                                                 plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                 #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 panel.grid.minor = element_blank())
+ggsave(paste0( "D1_FM_100kPCA_mCA.svg"),plot=g1.1,width = 8,height = 3.5,unit="cm")
+ 
+# all chrX
+
+inputMatrix = dat_100k%>%filter(chr=="chrX")%>% select(-c(1,2,3))
+probesetvar = apply(inputMatrix,1,var)
+ord = order(probesetvar,decreasing=TRUE)[1:1000]
+pca = prcomp(t(inputMatrix[ord,]),scale=F)
+ss6 = summary(pca)
+pca_dat <- pca$x[,c(1,2,3,4)]
+
+
+pca_dat <- as.data.frame(pca_dat)
+pca_dat$name =row.names(pca_dat)
+pca_dat$rep = sapply(strsplit(pca_dat$name,split="_"),"[[",3)
+pca_dat$group <- sapply(strsplit(pca_dat$name,split="_Rep"),"[[",1)
+pca_dat$TET1 <- sapply(strsplit(pca_dat$name,split="_"),"[[",2)
+
+g1 <-  ggplot(pca_dat,aes(x=pca_dat$PC1,y=pca_dat$PC2,label=pca_dat$rep)) + geom_point(aes(color=group,shape=TET1)) + geom_text(aes(label=""),hjust=1,vjust=-1,size=1)+
+  #coord_cartesian(xlim=c(-20,20),ylim = c(-20, 20),expand=F) + 
+  scale_color_manual(values = c("Male_KO"="orange","Male_WT"="orange","Female_WT"="purple","Female_KO"="purple")) +
+  scale_shape_manual(values=c("KO"=13,"WT"=1))+xlab("PC1 ( 95.4% )")+ylab("PC2 ( 0.9% )")
+
+
+g1.1 = g1 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),
+                                                 axis.text.x=element_blank(),
+                                                 axis.text.y=element_blank(),
+                           legend.position ="right",legend.title=element_text(face='italic',size=5),
+                           panel.grid.major=element_line(colour=NA),
+                           legend.text = element_text(size=5),
+                           legend.key.size = unit(0, 'cm'),
+                           legend.key.height = unit(0.2, 'cm'),
+                           legend.key.width = unit(0, 'cm'),
+                                                 panel.background = element_rect(fill = NA,size=1,colour = "black"),
+                                                 plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 panel.grid.minor = element_blank())
+ggsave(paste0("D1_FM_100kPCA_mCA.chrX.svg"),plot=g1.1,width = 8,height = 3.5,unit="cm")
