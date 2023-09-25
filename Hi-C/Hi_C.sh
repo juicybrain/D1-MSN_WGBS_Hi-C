@@ -64,3 +64,6 @@ hicPCA --matrix ../${spl}\.2Rep.allValidPairs.hic.mcool::/resolutions/1000000   
 
 
 
+
+
+
