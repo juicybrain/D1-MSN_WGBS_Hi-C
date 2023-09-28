@@ -210,7 +210,7 @@ g3.1 = g3 + theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),legend.title= ele
 ggsave("DHRs.length.svg",plot=g3.1, device="svg",width=8, height=3,unit="cm") 
 
            
-###  Calculate the genome-wide correlation of frequencies of CG and CH DMLs
+###  Calculate the genome-wide correlation of frequencies of D1-MSN CG and CH DMLs
 library("tidyverse")
 
 dat <- read.table("CG_CH_density.cor.f.txt",header=T)
