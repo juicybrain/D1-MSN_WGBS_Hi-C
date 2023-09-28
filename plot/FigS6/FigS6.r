@@ -218,55 +218,7 @@ plot(Stucont2,edge.color = "#00000080", edge.lty=2, vertex.label.cex=1, vertex.l
        layout = layout.fruchterman.reingold(Stucont2) %*% matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 2, 2))
 dev.off()
 
-###  Calculate the genome-wide correlation of frequencies of CG and CH DMLs
-library("tidyverse")
 
-dat <- read.table("CG_CH_density.cor.f.txt",header=T)
-colnames(dat) = c("chr", "S","E", "M_CG_hyper", "M_CG_hypo","F_CG_hyper", "F_CG_hypo", "Ctl_CG_hyper", "Ctl_CG_hypo", "Ko_CG_hyper", "Ko_CG_hypo","M_CH_hyper", "M_CH_hypo","F_CH_hyper", "F_CH_hypo", "Ctl_CH_hyper", "Ctl_CH_hypo", "Ko_CH_hyper", "Ko_CH_hypo")
-selected_columns <- dat[, -c(1:3)]
-correlation_matrix_pearson <- cor(selected_columns, method = "pearson")
-                
-  cor_pvalue_matrix <- function(df) {
-  # Get the number of columns
-  n <- ncol(df)
-
-  # Initialize an empty matrix to store p-values
-  pvalue_matrix <- matrix(NA, n, n)
-
-  # Iterate through each pair of variables and compute p-values
-  for (i in 1:(n - 1)) {
-    for (j in (i + 1):n) {
-      pvalue_matrix[i, j] <- cor.test(df[[i]], df[[j]], method = "pearson")$p.value
-      pvalue_matrix[j, i] <- pvalue_matrix[i, j]
-    }
-    pvalue_matrix[i, i] <- 1
-  }
-  pvalue_matrix[n, n] <- 1
-
-  # Set column and row names
-  colnames(pvalue_matrix) <- colnames(df)
-  rownames(pvalue_matrix) <- colnames(df)
-
-  return(pvalue_matrix)
-}
-
-cor_matrix = correlation_matrix_pearson
-pvalue_matrix <- cor_pvalue_matrix(selected_columns)
-
-library(ComplexHeatmap)
-library(circlize)
-heatmap <- Heatmap(cor_matrix,
-                   name = "correlation",
-                   col = colorRamp2(c(-1, 0, 1), c("darkblue", "white", "darkred")),
-                   show_column_names = TRUE,
-                   show_row_names = TRUE,
-                   cluster_columns = T,
-                   cluster_rows = T
-)
-
-svg("CG.CH.frequency.pearson.heatmap.0722.svg")
-draw(heatmap, heatmap_legend_side = "bot")
-dev.off()
 
 
 
