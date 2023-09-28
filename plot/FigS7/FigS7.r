@@ -98,10 +98,118 @@ dev.off()
  fviz_nbclust(dat3, kmeans, method = "wss")
  fviz_nbclust(dat3, kmeans, method = "wss", k.max = 20, iter.max=15)
  fviz_nbclust
- 
- 
- ################################################
- ## PCA
- ################################################
+
+
+rm(list=ls())   
+
+           
+### Plot the survey DML/DMR in/out DHR
+library("tidyverse")
+dat = read.table(paste0("DHR_stats_DMR.txt"), header=T,sep="\t")
+g1 = ggplot(data = dat, mapping = aes(x = factor(group,levels = c("M KO vs WT hyper","M KO vs WT hypo","F KO vs WT hyper","F KO vs WT hypo","WT M vs F hyper","WT M vs F hypo","KO M vs F hyper","KO M vs F hypo")), y = Quantity, fill = DHR)) + geom_bar(stat = 'identity', position = 'stack',size=0.6,width=0.6) + scale_fill_manual(values = c("in"="skyblue","out"="darkgray"))+xlab("") + scale_y_continuous(expand = c(0, 0),limits=c(0, 800))+ylab("DMR quantity")
+g1.2 <- g1 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),legend.title= element_blank(),
+                                                     #axis.text.x =element_text(size = 5,angle = 90, vjust=0.5),
+                                                      axis.text.x=element_blank(),
+                                                     #legend.position =c(0.3,0.7),
+                                                     legend.position ="right",
+                                                     legend.text = element_text(size=5),
+                                                     legend.key.size = unit(0.2, 'cm'),
+                                                     legend.key.height = unit(0.2, 'cm'),
+                                                     legend.key.width = unit(0.2, 'cm'),
+                                                     legend.box = "horizontal",
+                                                     panel.grid.major=element_line(colour=NA),
+                                                     panel.background = element_rect(fill = NA,size=0.5,colour = "black"),
+                                                     plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                     #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     panel.grid.minor = element_blank()) 
+                                                
+ggsave("DML_in_DHR.g4.DMR.svg",plot=g1.2, device="svg",width=6, height=3,unit="cm") 
+
+dat = read.table(paste0(wd,"DHR_stats_DML.1.txt"), header=T,sep="\t")
+g2 = ggplot(data = dat, mapping = aes(x = factor(group,levels = c("M KO vs WT hyper","M KO vs WT hypo","F KO vs WT hyper","F KO vs WT hypo","WT M vs F hyper","WT M vs F hypo","KO M vs F hyper","KO M vs F hypo")), y = Quantity, fill = DHR)) + geom_bar(stat = 'identity', position = 'stack',size=0.6,width=0.6) + scale_fill_manual(values = c("in"="skyblue","out"="darkgray"))+xlab("") + scale_y_continuous(expand = c(0, 0),limits=c(0, 7000)) + ylab("DML quantity")
+g2.2 <- g2 + theme_classic(base_size = 7)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),legend.title= element_blank(),
+                                                     #axis.text.x =element_text(size = 5,angle = 90, vjust=0.5),
+                                                      axis.text.x=element_blank(),
+                                                     #legend.position =c(0.3,0.7),
+                                                     legend.position ="right",
+                                                     legend.text = element_text(size=5),
+                                                     legend.key.size = unit(0.2, 'cm'),
+                                                     legend.key.height = unit(0.2, 'cm'),
+                                                     legend.key.width = unit(0.2, 'cm'),
+                                                     legend.box = "horizontal",
+                                                     panel.grid.major=element_line(colour=NA),
+                                                     panel.background = element_rect(fill = NA,size=0.5,colour = "black"),
+                                                     plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                     #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     panel.grid.minor = element_blank()) 
+                                                 
+ggsave("DML_in_DHR.g4.DML.svg",plot=g2.2, device="svg",width=6, height=3,unit="cm") 
+
+
+library(ggpubr)
+theme_set(theme_pubr())
+library("gridExtra")
+figure1 <- grid.arrange( g1.2, g2.2,layout_matrix = matrix(c(2,1), nrow =2))
+ggsave("DML_DMR.test3.svg",plot=figure1, device="svg",width=6, height=4,unit="cm")
+
+
+
+### plot size of DHR
+
+M_hyper = read.table("D1_M_WTvsCre.hyper.cDMR.bed",header=F)
+M_hypo = read.table("D1_M_WTvsCre.hypo.cDMR.bed",header=F)
+F_hyper = read.table("D1_F_WTvsCre.hyper.cDMR.bed",header=F)
+F_hypo = read.table("D1_F_WTvsCre.hypo.cDMR.bed",header=F)
+Ctl_hyper = read.table("D1_WT_Male_vs_Female.hyper.cDMR.bed", header=F)
+Ctl_hypo = read.table("D1_WT_Male_vs_Female.hypo.cDMR.bed", header=F)
+Ko_hyper = read.table("D1_KO_Male_vs_Female.hyper.cDMR.bed", header=F)
+Ko_hypo = read.table("D1_KO_Male_vs_Female.hypo.cDMR.bed", header=F)
+groups=c()
+size=c()
+
+for (spl in c("M_hyper", "M_hypo", "F_hyper", "F_hypo", "Ctl_hyper", "Ctl_hypo", "Ko_hyper", "Ko_hypo")){
+  assign(paste(spl,"size",sep = "_"),  get(spl)$V3- get(spl)$V2 )
+  groups =c(groups, rep(spl,length(get(paste(spl,"size",sep = "_")))))
+  size=c(size,unlist(get(paste(spl,"size",sep = "_"))))
+}
+df = data.frame(DHR_size=size, group=groups)
+df$group = factor(df$group, levels=c("M_hyper", "M_hypo", "F_hyper", "F_hypo", "Ctl_hyper", "Ctl_hypo", "Ko_hyper", "Ko_hypo"))
+
+library(ggplot2)
+
+g3=ggplot(df, aes(x = group, fill=df$group ,y = log10(DHR_size))) +
+  geom_boxplot(width=0.3) +
+  stat_summary(fun = function(x) quantile(x, 0.75),
+               geom = "point",
+               shape = 5,
+               size = 0,
+               color = "black",
+               show.legend = FALSE) +
+  ylab("Values") +
+  xlab("Group") + scale_fill_manual(values = c("M_hyper"="orange", "M_hypo"="orange", "F_hyper"="purple", "F_hypo"="purple", "Ctl_hyper"="darkgreen", "Ctl_hypo"="darkgreen", "Ko_hyper"="cyan", "Ko_hypo"="cyan"))+ ylim(c(3,7))
+
+g3.1 = g3 + theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),legend.title= element_blank(),
+                                                     #axis.text.x =element_text(size = 5,angle = 90, vjust=0.5),
+                                                      axis.text.x=element_blank(),
+                                                     #legend.position =c(0.3,0.7),
+                                                     legend.position ="right",
+                                                     legend.text = element_text(size=5),
+                                                     legend.key.size = unit(0.2, 'cm'),
+                                                     legend.key.height = unit(0.2, 'cm'),
+                                                     legend.key.width = unit(0.2, 'cm'),
+                                                     legend.box = "top",
+                                                    # panel.grid.major=element_line(colour=NA),
+                                                    # panel.background = element_rect(fill = NA,size=0.5,colour = "black"),
+                                                    # plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                     #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                     panel.grid.minor = element_blank()) 
+                                                 
+ggsave("DHRs.length.svg",plot=g3.1, device="svg",width=8, height=3,unit="cm") 
+
+
+           
  
 
