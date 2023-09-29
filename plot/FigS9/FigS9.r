@@ -144,8 +144,6 @@ ggsave("D1.FN_FP.svg",plot=g2, device="svg",width=6, height=6,unit="cm")
 
 
 ### 2D density plot
-
-#!/usr/bin/Rscript
 library("ggplot2")
 library("hexbin")
 
@@ -163,6 +161,10 @@ cor_sp
 cor_pr = cor(dat$x, dat$y, method="pearson")
 cor_pr
 
+fit = lm(y~x, data=dat)
+summary(fit)
+
+
 g6 <- ggplot(dat, aes(x=x, y=y)) + stat_binhex(bins=100,alpha=0.8) +
     scale_fill_gradientn(colors = c("white", "blue", "green", "yellow", "orange", "red"),trans="log2",
     breaks = c(0,4,16,64,256,1024),name = "Density") + scale_x_continuous(expand = c(0, 0)) +
@@ -174,5 +176,5 @@ g6 <- ggplot(dat, aes(x=x, y=y)) + stat_binhex(bins=100,alpha=0.8) +
     panel.grid.minor = element_blank(),
     legend.key.size = unit(0.2, "cm"),
     axis.text.x = element_text(vjust=1,hjust=1,angle =0,size=5),
-    axis.text.y = element_text(angle =0,size=5))
-ggsave(filename=paste0(args[1],args[2], "CpG.hex.density.svg"), plot=g6, unit="cm", width = 3.5, height=2.5)
+    axis.text.y = element_text(angle =0,size=5)) + xlab(args[1]) +ylab(args[2])
+ggsave(filename=paste0(args[1],args[2], "CpG.hex.density.svg"), plot=g6, unit="cm", width = 3.5, height=2.5) 
