@@ -260,7 +260,41 @@ svg("CG.CH.frequency.pearson.heatmap.0722.svg")
 draw(heatmap, heatmap_legend_side = "bot")
 dev.off()
 
+### 2D density plot
 
-           
+#!/usr/bin/Rscript
+library("ggplot2")
+library("hexbin")
+
+args <- commandArgs(trailingOnly = TRUE)
+
+
+dat1 = read.table(args[1], header=F)
+colnames(dat1)=c("chr",args[1])
+dat2 = read.table(args[2], header=F)
+colnames(dat2)=c("chr",args[2])
+dat=merge(dat1, dat2, by="chr", all=F)
+colnames(dat)=c("chr", "x","y")
+cor_sp = cor(dat$x, dat$y, method="spearman")
+cor_sp
+cor_pr = cor(dat$x, dat$y, method="pearson")
+cor_pr
+
+g6 <- ggplot(dat, aes(x=x, y=y)) + stat_binhex(bins=100,alpha=0.8) +
+    scale_fill_gradientn(colors = c("white", "blue", "green", "yellow", "orange", "red"),trans="log2",
+    breaks = c(0,4,16,64,256,1024),name = "Density") + scale_x_continuous(expand = c(0, 0)) +
+    scale_x_continuous(expand = c(0, 0), limits=c(0, 2)) + scale_y_continuous(expand = c(0, 0), limits=c(0, 2))  +
+    annotate("text",label=paste0("rho=",cor_sp), x = -0.15, y = 0.15,size=5) +
+    theme_classic(base_size = 5)+ theme(plot.margin = unit(c(0,0,0,0), "cm"),
+    panel.grid.major=element_line(colour=NA),panel.background = element_rect(fill = "transparent",colour = NA),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    legend.key.size = unit(0.2, "cm"),
+    axis.text.x = element_text(vjust=1,hjust=1,angle =0,size=5),
+    axis.text.y = element_text(angle =0,size=5))
+ggsave(filename=paste0(args[1],args[2], "CpG.hex.density.svg"), plot=g6, unit="cm", width = 3.5, height=2.5)
+
+
+
  
 
