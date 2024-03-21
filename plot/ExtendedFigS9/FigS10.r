@@ -1,4 +1,0 @@
-#
-#   Author Yuxiang Li
-#
-

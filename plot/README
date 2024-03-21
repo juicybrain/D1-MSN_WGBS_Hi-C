@@ -1,1 +1,2 @@
-Code for most of the plots
+This repository hosts code for generating a significant portion of the plots and analyses presented in our work. We acknowledge that reproducing all our published analyses may present challenges. The code's readability might not meet the highest standards, and many scripts depend on intermediate or result files produced by other scripts. We decide to share this code stems from a commitment to transparency and the principles of open science. We hope this contributes to a clearer understanding of our work.
+-Yuxiang Li (mathewlyx@gmail.com)

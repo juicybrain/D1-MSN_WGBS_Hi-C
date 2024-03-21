@@ -19,7 +19,7 @@ trim_galore --paired   ${spl}\_R1.fastq.gz ${spl}\_R2.fastq.gz
 #  MAX_INSERT_SIZE = 1000
 #  GET_ALL_INTERACTION_CLASSES = 1
 #  RM_SINGLETON = 1
-#  RM_DUP = 0
+#  RM_DUP = 1
 HiC-Pro -i /raw_data -o ./hicpro_out -c config-hicpro.txt 
 
 # Create ".hic" files for JuicerTools HiC-Pro valid pairs 

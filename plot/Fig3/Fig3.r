@@ -2,8 +2,75 @@
 #
 #  Author Yuxiang Li
 #
-###  PCA analysis of the DMR methylation dynamics of all D1-MSN samples 
 
+
+
+### plot the global DNA methylation level
+library("tidyverse")
+dat_plot = read.table("global_meCG_level.txt",header=T)
+
+df_mRNA_mean = dat_plot%>%group_by(group)%>%summarise(mRNA_mean=mean(mCG_level) )
+
+#df_mRNA_sd = dat_plot%>%group_by(group)%>%summarise(mRNA_sd=sd(mCG_level) )
+df_mRNA_se = dat_plot %>% group_by(group) %>% summarise(mRNA_se = sd(mCG_level) / sqrt(n()))
+
+dat_plot = merge(df_mRNA_mean,df_mRNA_se,by=c("group"))
+dat_plot$group=factor(dat_plot$group, levels=c("M_Ctl","M_KO","F_Ctl","F_KO"))
+dat_plot_se = merge(df_mRNA_mean,df_mRNA_se,by=c("group"))
+dat_plot_se$group=factor(dat_plot_se$group, levels=c("M_Ctl","M_KO","F_Ctl","F_KO"))
+ 
+p1<- ggplot(dat_plot, aes(x=group, y=mRNA_mean, fill=group)) + 
+  geom_col(stat="identity",
+           position=position_dodge(),size=0.4,width=0.4, col="black") +
+  geom_errorbar(aes(ymin=mRNA_mean-mRNA_se, ymax= mRNA_mean+mRNA_se),size=0.2, width=0.2,col="black",
+                 position=position_dodge(.9))+ scale_fill_manual(values = c("M_Ctl"="orange", "M_KO"="orange" , "F_Ctl" = "purple", "F_KO" ="purple" ))  + xlab("")+ylab("mRNA level (fold change)") + coord_cartesian(ylim = c(0.79,0.81),expand=F)+expand_limits(x =c(0.5,4.5))
+
+
+p1.2 <- p1 + theme_classic(base_size = 6)+ theme(plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm"),
+                                              #  axis.text.x =element_text(size = 5,angle = 45,vjust=0.5),
+                                                axis.text.x=element_blank(),
+                                                 legend.position ="",
+                                              legend.title=element_text(size=5), 
+                                              panel.grid.major=element_line(colour=NA),
+                                               legend.text = element_text(size=5),
+                                               legend.key.size = unit(0.2, 'cm'),
+                                                legend.key.height = unit(0.2, 'cm'),
+                                                 legend.key.width = unit(0.2, 'cm'),
+                                             #    panel.background = element_rect(fill = NA,size=0.5,colour = "black"),
+                                            #     plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 #panel.background = element_rect(fill = "transparent",colour = NA),
+                                                 #plot.background = element_rect(fill = "transparent",colour = NA),
+                                                 panel.grid.minor = element_blank())
+
+ggsave("D1.mCG.svg",plot=p1.2, device="svg",width=3, height=3,unit="cm")
+
+
+
+### Upset plot show the overlap of D1-MSN DMRs
+        library(regioneR)
+        library(ComplexHeatmap)
+
+
+        M_hyper = toGRanges("M_hyper.bed")
+        M_hypo = toGRanges("M_hypo.bed")
+        F_hyper = toGRanges("F_hyper.bed")
+        F_hypo = toGRanges("F_hypo.bed")
+        KO_hypo = toGRanges("KO_hypo.bed")
+        KO_hyper = toGRanges("KO_hyper.bed")
+        WT_hypo = toGRanges("WT_hypo.bed")
+        WT_hyper = toGRanges("WT_hyper.bed")
+        
+        
+        input_data=list(M_hyper=M_hyper, M_hypo=M_hypo, F_hyper=F_hyper, F_hypo=F_hypo, WT_hyper=WT_hyper, WT_hypo=WT_hypo, KO_hyper=KO_hyper, KO_hypo=KO_hypo)
+        m2_intersect = make_comb_mat(input_data,mode="intersect")
+         
+        svg("DMR.intersect.test5.svg",width=6,height=4)
+        UpSet(m2_intersect,set_order = c("M_hyper", "M_hypo", "F_hyper", "F_hypo", "WT_hyper", "WT_hypo", "KO_hyper", "KO_hypo"),comb_order = order(comb_size(m2_intersect)))
+        dev.off()
+
+
+
+###  PCA analysis of the DMR methylation dynamics of all D1-MSN samples 
 set.seed(123)
 library(dplyr)
 
@@ -58,8 +125,38 @@ ggsave("D1_DMR.PCA.svg",plot=g1.1_DMR,width = 6,height = 4,unit="cm")
 
 rm(list=ls())
 
-###  Plot the enrichment of TF in DMR by motif analysis 
 
+
+### plot GO annotation of CG DMR
+
+library("ChIPseeker")
+library("tidyverse")
+library("DOSE")
+library("clusterProfiler") 
+library("org.Mm.eg.db") 
+library(TxDb.Mmusculus.UCSC.mm10.knownGene) 
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene 
+
+dat_M_hyper <- readPeakFile("dmrs_D1_M_WTvsCre.delta0.p1e-3.txt.bedgraph.hyper.bedgraph")
+dat_M_hypo <- readPeakFile("dmrs_D1_M_WTvsCre.delta0.p1e-3.txt.bedgraph.hypo.bedgraph")
+dat_F_hyper <- readPeakFile("dmrs_D1_F_WTvsCre_p1e-3.delta0.mergedSS2DS.txt.bedgraph.hyper.bedgraph")
+dat_F_hypo <- readPeakFile("dmrs_D1_F_WTvsCre_p1e-3.delta0.mergedSS2DS.txt.bedgraph.hypo.bedgraph")
+dat_WT_hyper <- readPeakFile("dmrs_D1_WT_Male_vs_Female.delta0p1e-3.mergeSS2DS.txt.bedgraph.hyper.bedgraph")
+dat_WT_hypo <- readPeakFile("dmrs_D1_WT_Male_vs_Female.delta0p1e-3.mergeSS2DS.txt.bedgraph.hypo.bedgraph")
+dat_KO_hyper <- readPeakFile("dmrs_D1_KO_Male_vs_Female.delta0p1e-3.mergeSS2DS.txt.bedgraph.hyper.bedgraph")
+dat_KO_hypo <- readPeakFile("dmrs_D1_KO_Male_vs_Female.delta0p1e-3.mergeSS2DS.txt.bedgraph.hypo.bedgraph")
+
+peaks <- list(M_hyper=dat_M_hyper, M_hypo=dat_M_hypo, F_hyper=dat_F_hyper, F_hypo=dat_F_hypo, WT_hyper=dat_WT_hyper, WT_hypo=dat_WT_hypo,  KO_hyper=dat_KO_hyper, KO_hypo = dat_KO_hypo )
+peakAnnoList <- lapply(peaks, annotatePeak, TxDb=txdb,tssRegion=c(-1000, 100), verbose=FALSE,addFlankGeneInfo=TRUE, flankDistance=5000,annoDb="org.Mm.eg.db")
+dat_gene_list = lapply(peakAnnoList, function(i) as.data.frame(i)$geneId)
+
+compGO_BP <- compareCluster(dat_gene_list,fun="enrichGO",OrgDb = org.Mm.eg.db, ont = "BP",pvalueCutoff=0.05,qvalueCutoff=0.05)
+p6.1 <- dotplot(compGO_BP,showCategory = 10, includeAll=T)+ scale_color_gradient(high="gold", low="red")
+ggsave("MF.DMR.GO_BP.top10.svg",plot=p6.1, device="svg",width=8, height=10)
+
+
+
+###  Plot the enrichment of TF in DMR by motif analysis 
 set.seed(2)
 library(tidyverse)
 library(reshape2)
@@ -94,374 +191,85 @@ p_tf.2 = p_tf2 + theme_bw(base_size = 5)+ theme(plot.margin = unit(c(0,0,0,0), "
 ggsave("CG.TF.svg",plot=p_tf.2, device="svg",width=8, height=4.5,unit="cm") 
 rm(list=ls())
 
-###  Plot genome-wide DML distribution
 
 
-library("tidyverse")
 
-dat_M_CG = read.table("dml_D1_Smth_M_KOvsCon_5percent1e-4.txt.bedgraph.txt",header=F)
-dat_M_CG$DML = ifelse(dat_M_CG$V4>0,"hyper","hypo")
-dat_F_CG = read.table("dml_D1_Smth_F_KOvsCon_5percentP1e-4.mergedSS2DS.txt.bedgraph.txt",header=F)
-dat_F_CG$DML = ifelse(dat_F_CG$V4>0,"hyper","hypo")
-dat_Ctl_CG = read.table("dml_D1_Smth_Con_MvsF_5percent1e-4.mergeSS2DS.txt.bedgraph.txt",header=F)
-dat_Ctl_CG$DML = ifelse(dat_Ctl_CG$V4>0,"hyper","hypo")
-dat_Ko_CG = read.table("dml_D1_Smth_KO_Male_vs_Female_5percent1e-4.mergeSS2DS.txt.bedgraph.txt",header=F)
-dat_Ko_CG$DML = ifelse(dat_Ko_CG$V4>0,"hyper","hypo")
-
-chr_lab <- read.table("chr_label.txt")
-p1.1 <- ggplot(dat_M_CG,aes(x=V2,y=V4,color=DML))+geom_point(size=0.03, alpha=1)+ scale_y_continuous(expand = c(0, 0), limits = c(-1,1))+ylab("")+xlab("")+scale_color_manual(values=c("hyper"="orange2","hypo"="orange2"))
-
-p1.2 <- p1.1 +theme_classic(base_size = 5,base_line_size = 0.2)+
-  theme(plot.margin = unit(c(0,0.1,0,0), "cm"),
-  axis.text.x =element_blank(),
-  axis.text.y =element_blank(),
-  legend.position = "none",
-  panel.background = element_rect(fill = NA,size=0.3,colour = "black"),
-  plot.background = element_rect(fill = "transparent",colour = NA),
-  panel.grid.minor = element_blank())+
-  scale_x_continuous(breaks=chr_lab$V2,expand = c(0, 0), limits = c(0,2462745373))+ geom_hline(yintercept = 0, size=0.3, linetype = "dotted")
-
-library(gridExtra)
-
-p2.1 <- ggplot(dat_F_CG,aes(x=V2,y=V4,color=DML))+geom_point(size=0.03, alpha=1)+ scale_y_continuous(expand = c(0, 0), limits = c(-1,1))+ylab("")+xlab("")+scale_color_manual(values=c("hyper"="darkorchid","hypo"="darkorchid"))
-
-p2.2 <- p2.1 +theme_classic(base_size = 5,base_line_size = 0.2)+
-  theme(plot.margin = unit(c(0,0.1,0,0), "cm"),
-  axis.text.x =element_blank(),
-  axis.text.y =element_blank(),
-  legend.position = "none",
-  panel.background = element_rect(fill = NA,size=0.3,colour = "black"),
-  plot.background = element_rect(fill = "transparent",colour = NA),
-  panel.grid.minor = element_blank())+
-  scale_x_continuous(breaks=chr_lab$V2,labels = chr_lab$V1,expand = c(0, 0), limits = c(0,2462745373))+ geom_hline(yintercept = 0, size=0.3, linetype = "dotted")
-
-
-p3.1 <- ggplot(dat_Ctl_CG,aes(x=V2,y=V4,color=DML))+geom_point(size=0.03, alpha=1)+ scale_y_continuous(expand = c(0, 0), limits = c(-1,1))+ylab("")+xlab("")+scale_color_manual(values=c("hyper"="darkgreen","hypo"="darkgreen"))
-
-p3.2 <- p3.1 +theme_classic(base_size = 5,base_line_size = 0.2)+
-  theme(plot.margin = unit(c(0,0.1,0,0), "cm"),
-  axis.text.x =element_blank(),
-  axis.text.y =element_blank(),
-  legend.position = "none",
-  panel.background = element_rect(fill = NA,size=0.3,colour = "black"),
-  plot.background = element_rect(fill = "transparent",colour = NA),
-  panel.grid.minor = element_blank())+
-  scale_x_continuous(breaks=chr_lab$V2,labels = chr_lab$V1,expand = c(0, 0), limits = c(0,2462745373))+ geom_hline(yintercept = 0, size=0.3, linetype = "dotted")
-
-p4.1 <- ggplot(dat_Ko_CG,aes(x=V2,y=V4,color=DML))+geom_point(size=0.03, alpha=1)+ scale_y_continuous(expand = c(0, 0), limits = c(-1,1))+ylab("")+xlab("")+scale_color_manual(values=c("hyper"="cyan3","hypo"="cyan3"))
-
-p4.2 <- p4.1 +theme_classic(base_size = 5,base_line_size = 0.2)+
-  theme(plot.margin = unit(c(0,0.1,0,0), "cm"),
-  axis.text.x =element_blank(),
-  axis.text.y =element_blank(),
-  legend.position = "none",
-  panel.background = element_rect(fill = NA,size=0.3,colour = "black"),
-  plot.background = element_rect(fill = "transparent",colour = NA),
-  panel.grid.minor = element_blank())+
-  scale_x_continuous(breaks=chr_lab$V2,labels = chr_lab$V1,expand = c(0, 0), limits = c(0,2462745373))+ geom_hline(yintercept = 0, size=0.3, linetype = "dotted")
-
-p <- grid.arrange(p1.2, p2.2,p3.2,p4.2, nrow = 4, padding = unit(c(0,0,0,0), "cm"))
-ggsave("figre1.test25.png",plot=p, device=png,width=24, height=6,units="cm",dpi=600) 
-
-ggsave("figre1.test29.svg",plot=p, device=svg,width=30, height=9,units="cm") 
-ggsave("figre1.test30.svg",plot=p, device=svg,width=30, height=10,units="cm") 
-
-
-###  Plot mCG in the hotspot on chr8  
-
-
-############################ chr8 ###############################################
-dat = read.table("promoter/chr8.cDMR_promoter_1.bedgraph", header=F)
-dat$V5 = 1
-for (i in 2:10){
-  dat_tmp = read.table(paste0("promoter/chr8.cDMR_promoter_",i,".bedgraph"),header =F)
-  dat_tmp$V5 = i
-  dat=rbind(dat,dat_tmp)
-}
-
-for (i in 1:50){
-  dat_tmp = read.table(paste0("gene_body/chr8.cDMR_gene_body_",i,".bedgraph"),header =F)
-  dat_tmp$V5 = i+10
-  dat=rbind(dat,dat_tmp)
-}
-
-for (i in 1:10){
-  dat_tmp = read.table(paste0("downstream/chr8.cDMR_downstream_",i,".bedgraph"),header =F)
-  dat_tmp$V5 = i+60
-  dat=rbind(dat,dat_tmp)
-}
-
-dat_s = dat[order(dat$V4, dat$V5),]
-
-write.table(dat_s, "chr8.cDMR.scaled.txt", quote=F, row.names = F, sep="\t")
-
-#library(reshape)
-#dat_test = head(dat_s)
-
-#dat_test = dat_test[,-c(1,2,3,6)]
-#colnames(dat_test) = c("gene","region",rep("MN",6), rep("MP",5), rep("FN", 5), rep("FP",6))
-
-dat_MN = dat_s[, 7:12]
-dat_MP = dat_s[, 13:17]
-dat_FN = dat_s[, 18:22]
-dat_FP = dat_s[, 23:28]
-
-
-for (spl in list("dat_MN", "dat_MP", "dat_FN", "dat_FP")){
-      
-      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
-      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )
-  }
-
- dat_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MN_mean"= dat_MN_mean, "MN_sd" = dat_MN_sd, "MP_mean" = dat_MP_mean, "MP_sd"= dat_MP_sd)
- dat_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "FN_mean"= dat_FN_mean, "FN_sd" = dat_FN_sd, "FP_mean" = dat_FP_mean, "FP_sd"= dat_FP_sd)
- 
- 
- dat_MN_mean_plot = dat_M_mean_sd[,1:4]
- colnames(dat_MN_mean_plot) = c("gene", "region", "mean", "sd") 
- dat_MN_mean_plot$group = "MN"
- 
- dat_MP_mean_plot = dat_M_mean_sd[,c(1,2,5,6)]
- colnames(dat_MP_mean_plot) = c("gene", "region", "mean", "sd")
- dat_MP_mean_plot$group = "MP"
-
- dat_FN_mean_plot = dat_F_mean_sd[,1:4]
- colnames(dat_FN_mean_plot) = c("gene", "region", "mean", "sd") 
- dat_FN_mean_plot$group = "FN"
- 
- dat_FP_mean_plot = dat_F_mean_sd[,c(1,2,5,6)]
- colnames(dat_FP_mean_plot) = c("gene", "region", "mean", "sd")
- dat_FP_mean_plot$group = "FP"
- 
- 
- dat_plot_M = rbind(dat_MN_mean_plot, dat_MP_mean_plot)
- 
- dat_plot_M_s = dat_plot_M[order(dat_plot_M$gene, dat_plot_M$region ),]
- 
- dat_plot_M_1 = dat_plot_M_s[1:140, ]
- 
- 
- g1 = ggplot(dat_plot_M_1, aes(x = region, y = mean, color = group, group = group)) +
-  geom_line(size=0.25) +
-  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
- # geom_point(size=0.1) +
- # theme_minimal() +
-  labs(x = "", y = "", title = "") +
-  scale_color_manual(values = c("MN" = "blue", "MP" = "red")) +
-  scale_fill_manual(values = c("MN" = "blue", "MP" = "red"))+
-  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.5, 1)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
-  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
- 
- g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
- 
- ggsave( "chr.male.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
- 
- ################### female ##################
- 
- dat_plot_F = rbind(dat_FN_mean_plot, dat_FP_mean_plot)
- 
- dat_plot_F_s = dat_plot_F[order(dat_plot_F$gene, dat_plot_F$region ),]
- 
- dat_plot_F_1 = dat_plot_F_s[1:140, ]
- 
- 
- g1 = ggplot(dat_plot_F_1, aes(x = region, y = mean, color = group, group = group)) +
-  geom_line(size=0.25) +
-  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
- # geom_point(size=0.1) +
- # theme_minimal() +
-  labs(x = "", y = "", title = "") +
-  scale_color_manual(values = c("FN" = "blue", "FP" = "red")) +
-  scale_fill_manual(values = c("FN" = "blue", "FP" = "red"))+
-  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.5, 1)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
-  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
- 
- g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
- 
- ggsave( "chr.female.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
- 
- 
-##################### beta regression ############################
- 
-
-dat_test = data.frame(MN_mean=dat_MN_mean_plot$mean[11:60], MP_mean=dat_MP_mean_plot$mean[11:60], pos=1:50)
-library(betareg)
-library(reshape)
-df = melt(dat_test, id="pos")
-colnames(df) = c("pos", "group", "mC")
-epsilon <- 0.0001
-df$mC <- ifelse(df$mC == 0, df$mC + epsilon, df$mC)
-df$mC <- ifelse(df$mC == 1, df$mC - epsilon, df$mC)
-
-# Fit the model
-model_M <- betareg(mC ~ group + pos, data = df)
-
-# Print the summary of the model
-summary(model_M)
-
-
-dat_test = data.frame(FN_mean=dat_FN_mean_plot$mean[11:60], FP_mean=dat_FP_mean_plot$mean[11:60], pos=1:50)
-library(betareg)
-library(reshape)
-df = melt(dat_test, id="pos")
-colnames(df) = c("pos", "group", "mC")
-epsilon <- 0.0001
-df$mC <- ifelse(df$mC == 0, df$mC + epsilon, df$mC)
-df$mC <- ifelse(df$mC == 1, df$mC - epsilon, df$mC)
-
-# Fit the model
-model_F <- betareg(mC ~ group + pos, data = df)
-
-# Print the summary of the model
-summary(model_F)
-
-
-###  Plot conversion-rate corrected mCH in the hotspot on chr8 
-
-
-############################ chr8 ###############################################
-
-library("tidyverse")
-dat_CA = read.table("mCA.corrected.txt", header=T)
-dat_CT = read.table("mCT.corrected.txt", header=T)
-dat_CC = read.table("mCC.corrected.txt", header=T)
-
-
-dat_c = dat_CA[, 51:94] + dat_CT[, 51:94] + dat_CC[,-1]
-
-dat_s = dat_c[,c(T,F)] / dat_c[,c(F,T)]
-
-dat_s = cbind(dat_CA[, 1:6], dat_s)
-
-#library(reshape)
-#dat_test = head(dat_s)
-
-#dat_test = dat_test[,-c(1,2,3,6)]
-#colnames(dat_test) = c("gene","region",rep("MN",6), rep("MP",5), rep("FN", 5), rep("FP",6))
-
-dat_MN = dat_s[, 7:12]
-dat_MP = dat_s[, 13:17]
-dat_FN = dat_s[, 18:22]
-dat_FP = dat_s[, 23:28]
-
-
-for (spl in list("dat_MN", "dat_MP", "dat_FN", "dat_FP")){
-      
-      assign(paste0(spl, "_mean"), rowMeans(get(spl)) )
-      assign(paste0(spl, "_sd"),  apply(get(spl), 1, sd) )  
-      
-  }
-
- dat_M_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "MN_mean"= dat_MN_mean, "MN_sd" = dat_MN_sd, "MP_mean" = dat_MP_mean, "MP_sd"= dat_MP_sd)
- dat_F_mean_sd = data.frame("gene"= dat_s$V4, "region"=dat_s$V5, "FN_mean"= dat_FN_mean, "FN_sd" = dat_FN_sd, "FP_mean" = dat_FP_mean, "FP_sd"= dat_FP_sd)
- 
- 
- dat_MN_mean_plot = dat_M_mean_sd[,1:4]
- colnames(dat_MN_mean_plot) = c("gene", "region", "mean", "sd") 
- dat_MN_mean_plot$group = "MN"
- 
- dat_MP_mean_plot = dat_M_mean_sd[,c(1,2,5,6)]
- colnames(dat_MP_mean_plot) = c("gene", "region", "mean", "sd")
- dat_MP_mean_plot$group = "MP"
-
- dat_FN_mean_plot = dat_F_mean_sd[,1:4]
- colnames(dat_FN_mean_plot) = c("gene", "region", "mean", "sd") 
- dat_FN_mean_plot$group = "FN"
- 
- dat_FP_mean_plot = dat_F_mean_sd[,c(1,2,5,6)]
- colnames(dat_FP_mean_plot) = c("gene", "region", "mean", "sd")
- dat_FP_mean_plot$group = "FP"
- 
- 
- dat_plot_M = rbind(dat_MN_mean_plot, dat_MP_mean_plot)
- 
- dat_plot_M_s = dat_plot_M[order(dat_plot_M$gene, dat_plot_M$region ),]
- 
- dat_plot_M_1 = dat_plot_M_s[141:280, ]
- 
- 
- g1 = ggplot(dat_plot_M_1, aes(x = region, y = mean, color = group, group = group)) +
-  geom_line(size=0.25) +
-  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
- # geom_point(size=0.1) +
- # theme_minimal() +
-  labs(x = "", y = "", title = "") +
-  scale_color_manual(values = c("MN" = "blue", "MP" = "red")) +
-  scale_fill_manual(values = c("MN" = "blue", "MP" = "red"))+
-  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.005, 0.03)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
-  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
- 
- g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
- 
- ggsave( "chr.male.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
- 
- ################### female ##################
- 
- dat_plot_F = rbind(dat_FN_mean_plot, dat_FP_mean_plot)
- 
- dat_plot_F_s = dat_plot_F[order(dat_plot_F$gene, dat_plot_F$region ),]
- 
- dat_plot_F_1 = dat_plot_F_s[141:280, ]
- 
- 
- g1 = ggplot(dat_plot_F_1, aes(x = region, y = mean, color = group, group = group)) +
-  geom_line(size=0.25) +
-  geom_ribbon(aes(ymin = mean-sd, ymax = mean + sd, fill = group),linetype=0, alpha = 0.2) +
- # geom_point(size=0.1) +
- # theme_minimal() +
-  labs(x = "", y = "", title = "") +
-  scale_color_manual(values = c("FN" = "blue", "FP" = "red")) +
-  scale_fill_manual(values = c("FN" = "blue", "FP" = "red"))+
-  scale_x_continuous(limits=c(0,70),breaks = c(0,10, 60,70), labels = c("-10","TSS", "TES","10")) +  scale_y_continuous(limits = c(0.005, 0.03)) + geom_vline(xintercept = 10, linetype="dashed", color = "black", size=0.25) +
-  geom_vline(xintercept = 60, linetype="dashed", color = "black", size=0.25) 
- 
- g1.1 = g1  + theme_classic(base_size=5, base_line_size = 0.25)+ theme(legend.position ="right", legend.key.size = unit(0.1, "cm"))
- 
- ggsave( "chr.female.8.8.svg",plot=g1.1, width = 4,height = 2, units = "cm")
- 
- 
- 
- 
-
-#chr8
-  dat_test = data.frame(MP_mean=dat_MP_mean_plot$mean[81:130], MN_mean=dat_MN_mean_plot$mean[81:130], pos=1:50)
-library(betareg)
-library(reshape)
-df = melt(dat_test, id="pos")
-colnames(df) = c("pos", "group", "mCH")
-epsilon <- 0.0001
-df$mCH <- ifelse(df$mCH == 0, df$mCH + epsilon, df$mCH)
-df$mCH <- ifelse(df$mCH == 1, df$mCH - epsilon, df$mCH)
-
-# Fit the model
-model_M <- betareg(mCH ~ group +pos, data = df)
-
-# Print the summary of the model
-summary(model_M)
-
-#chr8
-dat_test = data.frame(FP_mean=dat_FP_mean_plot$mean[81:130], FN_mean=dat_FN_mean_plot$mean[81:130], pos=1:50)
-library(betareg)
-library(reshape)
-df = melt(dat_test, id="pos")
-colnames(df) = c("pos", "group", "mCH")
-epsilon <- 0.0001
-df$mCH <- ifelse(df$mCH == 0, df$mCH + epsilon, df$mCH)
-df$mCH <- ifelse(df$mCH == 1, df$mCH - epsilon, df$mCH)
-
-# Fit the model
-model_F <- betareg(mCH ~ group + pos, data = df)
-
-# Print the summary of the model
-summary(model_F)
-
-
-
-
-
-
-
-
-
-
+### Cluster D1MSN-DMRs
+
+### K-means clustering of D1-MSN DMR and plot
+set.seed(123)
+library(ComplexHeatmap)
+library(circlize)
+library(dplyr)
+
+wd="D:/D1_WGBS/final version/fig1_version_4/DMR_cluster_08.05/"
+dat_DMR_FM_merge = read.table(paste0(wd, "DMR_meCG.txt"), header=T)
+colnames(dat_DMR_FM_merge) = c("pos", "Male_WT_Rep2","Male_WT_Rep3","Male_WT_Rep4","Male_WT_Rep5","Male_WT_Rep6","Male_WT_Rep1","Male_KO_Rep3","Male_KO_Rep4","Male_KO_Rep5","Male_KO_Rep1","Male_KO_Rep2","Female_WT_Rep1","Female_WT_Rep2","Female_WT_Rep3","Female_WT_Rep4","Female_WT_Rep5","Female_KO_Rep3","Female_KO_Rep4","Female_KO_Rep5","Female_KO_Rep6","Female_KO_Rep1","Female_KO_Rep2","M","F","WT", "KO","chr")
+dat_all = dat_DMR_FM_merge
+sample_group= sapply(strsplit(colnames(dat_all[,2:23]),split="_Re"),"[[",1)
+df2 = data.frame(Group=sample_group)
+Group=factor(df2$Group,levels=c("Male_WT","Female_WT","Male_KO", "Female_KO"))
+col= list(Group=c("Female_KO" ="darkmagenta", "Male_KO"="darkorange2","Female_WT" = "purple", "Male_WT"="orange" ))
+ha = HeatmapAnnotation(df = df2, col = col)
+library(RColorBrewer)
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+# 74 distinctive colors in R:
+distinctive_colors = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+dat2 <- scale(t(dat_all[, 2:23]),scale=F, center=T)
+dat3 <- t(dat2)
+row.names(dat3) = dat_all$pos
+write.table(dat3,"D1_DMR.new.07.19.scale.txt",quote=F,sep="\t")
+dat3[is.na(dat3)] = 0
+
+
+svg('D1_DMR.center.noscale_clr12_04.24.centroid.svg',width = 8,height = 8)
+h1 <- Heatmap(dat3,name="normalized MeCG",
+            row_km = 12,
+            row_gap = unit(1, "mm"),
+            column_gap = unit(1, "mm"),
+            row_km_repeats = 10,
+            top_annotation = ha,
+            col=colorRamp2(c(-0.5,0,0.5), c("blue", "white", "red")),
+            clustering_distance_rows =  "euclidean",
+            clustering_method_rows = "centroid",
+            show_row_names = FALSE,
+            row_title = "%s",
+            border = TRUE,
+            show_row_dend = F,
+            use_raster = TRUE,
+            column_split=Group,
+            cluster_column_slices = FALSE,
+            column_order=c("Male_WT_Rep6","Male_WT_Rep2","Male_WT_Rep3","Male_WT_Rep4","Male_WT_Rep1","Male_WT_Rep5","Female_WT_Rep1","Female_WT_Rep4","Female_WT_Rep5","Female_WT_Rep3","Female_WT_Rep2", "Male_KO_Rep5","Male_KO_Rep4","Male_KO_Rep3","Male_KO_Rep1","Male_KO_Rep2", "Female_KO_Rep1","Female_KO_Rep2","Female_KO_Rep4","Female_KO_Rep6","Female_KO_Rep5","Female_KO_Rep3")      
+)
+
+h1
+dev.off()
+
+dat_test = dat_all[,24:27]
+df4=data.frame(dat_test)
+colrow2 = list("M"=c("M_hyper"= "black", "M_hypo"="sky blue"), "F"= c("F_hyper"="black","F_hypo"="sky blue"), "WT"=c("WT_hyper"="black","WT_hypo"="sky blue"), "KO"=c("KO_hyper"= "black", "KO_hypo"="sky blue")   )
+df5 = data.frame(dat_all$chr)
+df5$dat_all.chr = factor(df5$dat_all.chr, levels=c(paste0("chr",1:19)))
+
+colrow3 = list("dat_all.chr"=setNames(  c("black", "darkred", "orange", "gold", "darkgreen", "cyan", "blue", "purple", "coral", "chartreuse1", "burlywood2", "cornsilk", "darkgray", "darkblue", "deeppink", "darkorange4", "cyan4", "red", "darkorchid4") , levels(df5$dat_all.chr) ))
+
+ha3 = HeatmapAnnotation(df = df4, which = 'row', col = colrow2,na_col = "white")
+ha4 = HeatmapAnnotation(df=df5, which='row',col=colrow3,na_col="white")
+svg('D1_MF_DMR_clr13_scale.test_13_8_fontchange_1.centroid.center.4.svg',width = 8,height = 8)
+h3=draw(h1+ha3+ha4 )
+dev.off()
+
+    rc1.list <-  row_order(h3) 
+    lapply(rc1.list, function(x) length(x))  #check/confirm size gene clusters
+    library(magrittr) # needed to load the pipe function '%>%'
+    
+            clu_df <- lapply(names(rc1.list), function(i){
+            #clu_df <- lapply(c(1:13), function(i){
+            out <- data.frame(DMR = rownames(dat3[rc1.list[[i]],]),
+            Cluster = paste0("cluster", i),
+            stringsAsFactors = FALSE)
+            return(out)
+            }) %>% do.call(rbind, .)
+            
+ write.table(clu_df,paste0("D1_FM_DMR_2022.h3.clr13.centroid.center.07.03.2023.txt"),row.names=F,quote=F,sep="\t")
 
