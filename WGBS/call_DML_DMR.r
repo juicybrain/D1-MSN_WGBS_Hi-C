@@ -2,8 +2,8 @@
 #
 #  Author  Yuxiang Li (mathewlyx@gmail.com)
 #
-                
-dat_all = read.table("../D1_MF_all_sample.fixed.s.autosome.DSS",header=F)
+# A file contains all CG methylation counts in DSS file format                
+dat_all = read.table("../D1_MF_all_sample.DSS",header=F)
 keep <- which(rowSums(dat_all[,c(4,6,8,10,12,14)]>=5)>=3 & rowSums(dat_all[,c(16,18,20,22,24)]>=5)>=3 )
 dat_keep <- dat_all[keep,]
         dat_M7 = dat_keep[,c(1,2,16,15)]
