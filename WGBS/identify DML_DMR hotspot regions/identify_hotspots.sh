@@ -8,7 +8,7 @@ for spl in `ls dml*bed`; do   bedtools map -a <(sort -k1,1 -k2,2n  /home/yli/ref
 wait
 
 ### Calculate the p-value of each bin 
-for spl in `ls *counts`; do  Rscript poisson.r ${spl}; done
+for spl in `ls *counts`; do  Rscript poisson_test.r ${spl}; done
 
 wait
 
@@ -20,11 +20,10 @@ func1(){
     python ~/git/combined-pvalues/cpv/peaks.py --seed ${2} --dist 200000  ${1}\.comb-p > ${1}\.res
 }
 
-for spl in `ls *txt`; do cat ${spl} | awk   '$4==1' | head -n 1 | awk -v name=${spl} '{printf name"\t"0.999*$6"\n"}' >> seed; done
+for spl in `ls *txt`; do cat ${spl} | awk   '$4==1' | head -n 1 | awk -v name=${spl} '{printf name"\t"0.9999*$6"\n"}' >> seed; done
 
 cat seed | while read line; do func1 $line; done
 
-for spl in `ls *txt`; do cat ${spl}|awk -v FS=" " -v OFS="\t" '{print $1,$2,$3,$6}' > ${spl}\.comb-p;  python ~/git/combined-pvalues/cpv/peaks.py --seed 0.01 --dist 100000  ${spl}\.comb-p > ${spl}\.res; done
 
 wait
 for spl in `ls *res`; do cat $spl | awk '$4<1e-10'|awk '$5>2' > ${spl}\.1e-10.bed; done
