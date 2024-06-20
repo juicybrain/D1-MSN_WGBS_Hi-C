@@ -92,7 +92,7 @@ rownames(dat_100k) = paste0( dat_100k$chr, dat_100k$start, dat_100k$end)
 inputMatrix = dat_100k%>%filter(chr!="chrX")%>% dplyr::select(-c(1,2,3))
 probesetvar = apply(inputMatrix,1,var)
 ord = order(probesetvar,decreasing=TRUE)[1:12000]
-pca = prcomp(t(inputMatrix[ord,]),scale=T)
+pca = prcomp(t(inputMatrix[ord,]),scale=F)
 ss1 = summary(pca)
 pca_dat <- pca$x[,c(1,2,3,4)]
 pca_dat <- as.data.frame(pca_dat)

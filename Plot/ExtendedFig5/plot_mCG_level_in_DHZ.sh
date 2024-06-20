@@ -1,7 +1,7 @@
 #
 #  Author Yuxiang Li
 #
-### plot the meCG level in DHRs
+### plot the meCG level in DHZs
 
 M_P="D1M_WGBS_7_CG.DSS.gz.bw        D1M_WGBS_8_CG.DSS.gz.bw        D1M_WGBS_9_CG.DSS.gz.bw        D1M_WGBS_10_CG.DSS.gz.bw    D1M_WGBS_12_CG.DSS.gz.bw     "
 M_N="D1M_WGBS_1_CG.DSS.gz.bw        D1M_WGBS_2_CG.DSS.gz.bw        D1M_WGBS_3_CG.DSS.gz.bw        D1M_WGBS_4_CG.DSS.gz.bw     D1M_WGBS_5_CG.DSS.gz.bw        D1M_WGBS_11_CG.DSS.gz.bw "
@@ -33,7 +33,7 @@ do
     done
 done
 
-### Count the intersection between non-CG DML and CG DHRs
+### Count the intersection between non-CG DML and CG DHZs
 
   bedtools intersect -wa -a <(cat dml_D1_Smth_M_CtlvsKo_5p1e-4.nonCG.bedgraph | awk '$4>0' ) -b M.hyper.cDMR.bed| sort -k1,1 -k2,2n | uniq |wc -l
   bedtools intersect -wa -a <(cat dml_D1_Smth_M_CtlvsKo_5p1e-4.nonCG.bedgraph | awk '$4<0' ) -b M.hyper.cDMR.bed| sort -k1,1 -k2,2n | uniq |wc -l
