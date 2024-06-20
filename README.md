@@ -1,1 +1,1 @@
-# D1-MSN_WGBS_Hi-C
+# D1-MSN WGBS & Hi-C
