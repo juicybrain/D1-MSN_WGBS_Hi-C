@@ -49,8 +49,6 @@ ggsave("D1.mCG.svg",plot=p1.2, device="svg",width=3, height=3,unit="cm")
 ### Upset plot show the overlap of D1-MSN DMRs
         library(regioneR)
         library(ComplexHeatmap)
-
-
         M_hyper = toGRanges("M_hyper.bed")
         M_hypo = toGRanges("M_hypo.bed")
         F_hyper = toGRanges("F_hyper.bed")
@@ -67,7 +65,6 @@ ggsave("D1.mCG.svg",plot=p1.2, device="svg",width=3, height=3,unit="cm")
         svg("DMR.intersect.test5.svg",width=6,height=4)
         UpSet(m2_intersect,set_order = c("M_hyper", "M_hypo", "F_hyper", "F_hypo", "WT_hyper", "WT_hypo", "KO_hyper", "KO_hypo"),comb_order = order(comb_size(m2_intersect)))
         dev.off()
-
 
 
 ###  PCA analysis of the DMR methylation dynamics of all D1-MSN samples 
@@ -149,6 +146,10 @@ dat_KO_hypo <- readPeakFile("dmrs_D1_KO_Male_vs_Female.delta0p1e-3.mergeSS2DS.tx
 peaks <- list(M_hyper=dat_M_hyper, M_hypo=dat_M_hypo, F_hyper=dat_F_hyper, F_hypo=dat_F_hypo, WT_hyper=dat_WT_hyper, WT_hypo=dat_WT_hypo,  KO_hyper=dat_KO_hyper, KO_hypo = dat_KO_hypo )
 peakAnnoList <- lapply(peaks, annotatePeak, TxDb=txdb,tssRegion=c(-1000, 100), verbose=FALSE,addFlankGeneInfo=TRUE, flankDistance=5000,annoDb="org.Mm.eg.db")
 dat_gene_list = lapply(peakAnnoList, function(i) as.data.frame(i)$geneId)
+
+library(writexl)
+dat_geneName_list = lapply(peakAnnoList, function(i) as.data.frame(i))
+write_xlsx(dat_geneName_list, "Gene_list.xlsx")
 
 compGO_BP <- compareCluster(dat_gene_list,fun="enrichGO",OrgDb = org.Mm.eg.db, ont = "BP",pvalueCutoff=0.05,qvalueCutoff=0.05)
 p6.1 <- dotplot(compGO_BP,showCategory = 10, includeAll=T)+ scale_color_gradient(high="gold", low="red")

@@ -34,7 +34,6 @@ p1.2 <- p1 + theme_classic(base_size = 6)+ theme(plot.margin = unit(c(0.1,0.1,0.
                                                  #panel.background = element_rect(fill = "transparent",colour = NA),
                                                  #plot.background = element_rect(fill = "transparent",colour = NA),
                                                  panel.grid.minor = element_blank())
-
 #+ scale_y_continuous(expand = c(0, 0), limits = c(0.5,1))
 ggsave("D1-tdTomato.qPCR.svg",plot=p1.2, device="svg",width=4, height=3,unit="cm")
 
